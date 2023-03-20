@@ -1,59 +1,64 @@
 """
-MindSpore implementation of `BiT`.
+MindSpore implementation of `BiT_ResNet`.
 Refer to Big Transfer (BiT): General Visual Representation Learning.
 """
 
-from typing import Optional, Type, List, Union
+from typing import List, Optional, Type, Union
 
 import mindspore
-from mindspore import nn, Tensor, ops
+from mindspore import Tensor, nn, ops
 
 from .layers.pooling import GlobalAvgPooling
-from .utils import load_pretrained
 from .registry import register_model
+from .utils import load_pretrained
 
 __all__ = [
-    'BiT',
-    'BiTresnet50',
+    "BiT_ResNet",
+    "BiTresnet50",
+    "BiTresnet50x3",
+    "BiTresnet101",
 ]
 
 
-def _cfg(url='', **kwargs):
+def _cfg(url="", **kwargs):
     return {
-        'url': url,
-        'num_classes': 1000,
-        'first_conv': 'conv1', 'classifier': 'classifier',
-        **kwargs
+        "url": url,
+        "num_classes": 1000,
+        "first_conv": "conv1",
+        "classifier": "classifier",
+        **kwargs,
     }
 
 
 default_cfgs = {
-    'BiTresnet50': _cfg(url='https://download.mindspore.cn/toolkits/mindcv/bit/BiTresnet50.ckpt')
+    "BiTresnet50": _cfg(url="https://download.mindspore.cn/toolkits/mindcv/bit/BiTresnet50.ckpt"),
+    "BiTresnet50x3": _cfg(url="https://download.mindspore.cn/toolkits/mindcv/bit/BiT_resnet50x3-703782b3.ckpt"),
+    "BiTresnet101": _cfg(url="https://download.mindspore.cn/toolkits/mindcv/bit/BiTresnet101.ckpt"),
 }
 
 
 class StdConv2d(nn.Conv2d):
     r"""Conv2d with Weight Standardization
+    Args:
+        in_channels(int): The channel number of the input tensor of the Conv2d layer.
+        out_channels(int): The channel number of the output tensor of the Conv2d layer.
+        kernel_size(int): Specifies the height and width of the 2D convolution kernel.
+        stride(int): The movement stride of the 2D convolution kernel. Default: 1.
+        pad_mode(str): Specifies padding mode. The optional values are "same", "valid", "pad". Default: "same".
+        padding(int): The number of padding on the height and width directions of the input. Default: 0.
+        group(int): Splits filter into groups. Default: 1.
+    """
 
-          Args:
-              in_channels(int): The channel number of the input tensor of the Conv2d layer.
-              out_channels(int): The channel number of the output tensor of the Conv2d layer.
-              kernel_size(int): Specifies the height and width of the 2D convolution kernel.
-              stride(int): The movement stride of the 2D convolution kernel. Default: 1.
-              pad_mode(str): Specifies padding mode. The optional values are "same", "valid", "pad". Default: "same".
-              padding(int): The number of padding on the height and width directions of the input. Default: 0.
-              group(int): Splits filter into groups. Default: 1.
-          """
-
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 kernel_size,
-                 stride=1,
-                 pad_mode='same',
-                 padding=0,
-                 group=1
-                 ) -> None:
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size,
+        stride=1,
+        pad_mode="same",
+        padding=0,
+        group=1,
+    ) -> None:
         super(StdConv2d, self).__init__(
             in_channels,
             out_channels,
@@ -61,7 +66,8 @@ class StdConv2d(nn.Conv2d):
             stride,
             pad_mode,
             padding,
-            group)
+            group,
+        )
         self.mean_op = ops.ReduceMean(keep_dims=True)
 
     def construct(self, x):
@@ -75,28 +81,28 @@ class StdConv2d(nn.Conv2d):
 
 class Bottleneck(nn.Cell):
     """define the basic block of BiT
-
-        Args:
-              in_channels(int): The channel number of the input tensor of the Conv2d layer.
-              channels(int): The channel number of the output tensor of the middle Conv2d layer.
-              stride(int): The movement stride of the 2D convolution kernel. Default: 1.
-              groups(int): Number of groups for group conv in blocks. Default: 1.
-              base_width(int): Base width of pre group hidden channel in blocks. Default: 64.
-              norm(nn.Cell): Normalization layer in blocks. Default: None.
-              down_sample(nn.Cell): Down sample in blocks. Default: None.
-          """
+    Args:
+          in_channels(int): The channel number of the input tensor of the Conv2d layer.
+          channels(int): The channel number of the output tensor of the middle Conv2d layer.
+          stride(int): The movement stride of the 2D convolution kernel. Default: 1.
+          groups(int): Number of groups for group conv in blocks. Default: 1.
+          base_width(int): Base width of pre group hidden channel in blocks. Default: 64.
+          norm(nn.Cell): Normalization layer in blocks. Default: None.
+          down_sample(nn.Cell): Down sample in blocks. Default: None.
+    """
 
     expansion: int = 4
 
-    def __init__(self,
-                 in_channels: int,
-                 channels: int,
-                 stride: int = 1,
-                 groups: int = 1,
-                 base_width: int = 64,
-                 norm: Optional[nn.Cell] = None,
-                 down_sample: Optional[nn.Cell] = None
-                 ) -> None:
+    def __init__(
+        self,
+        in_channels: int,
+        channels: int,
+        stride: int = 1,
+        groups: int = 1,
+        base_width: int = 64,
+        norm: Optional[nn.Cell] = None,
+        down_sample: Optional[nn.Cell] = None,
+    ) -> None:
         super().__init__()
         if norm is None:
             norm = nn.GroupNorm
@@ -106,7 +112,7 @@ class Bottleneck(nn.Cell):
         self.conv1 = StdConv2d(in_channels, width, kernel_size=1, stride=1)
         self.gn2 = norm(32, width)
         self.conv2 = StdConv2d(width, width, kernel_size=3, stride=stride,
-                               padding=1, pad_mode='pad', group=groups)
+                               padding=1, pad_mode="pad", group=groups)
         self.gn3 = norm(32, width)
         self.conv3 = StdConv2d(width, channels * self.expansion,
                                kernel_size=1, stride=1)
@@ -140,12 +146,11 @@ class Bottleneck(nn.Cell):
         return out
 
 
-class BiT(nn.Cell):
-    r"""BiT model class, based on
+class BiT_ResNet(nn.Cell):
+    r"""BiT_ResNet model class, based on
     `"Big Transfer (BiT): General Visual Representation Learning" <https://arxiv.org/abs/1912.11370>`_
-
     Args:
-        block(Union[Bottleneck]): block of BiT.
+        block(Union[Bottleneck]): block of BiT_ResNetv2.
         layers(tuple(int)): number of layers of each stage.
         wf(int): width of each layer. Default: 1.
         num_classes(int): number of classification classes. Default: 1000.
@@ -155,16 +160,17 @@ class BiT(nn.Cell):
         norm(nn.Cell): normalization layer in blocks. Default: None.
     """
 
-    def __init__(self,
-                 block: Type[Union[Bottleneck]],
-                 layers: List[int],
-                 wf: int = 1,
-                 num_classes: int = 1000,
-                 in_channels: int = 3,
-                 groups: int = 1,
-                 base_width: int = 64,
-                 norm: Optional[nn.Cell] = None
-                 ) -> None:
+    def __init__(
+        self,
+        block: Type[Union[Bottleneck]],
+        layers: List[int],
+        wf: int = 1,
+        num_classes: int = 1000,
+        in_channels: int = 3,
+        groups: int = 1,
+        base_width: int = 64,
+        norm: Optional[nn.Cell] = None,
+    ) -> None:
         super().__init__()
 
         if norm is None:
@@ -176,9 +182,9 @@ class BiT(nn.Cell):
         self.base_with = base_width
 
         self.conv1 = StdConv2d(in_channels, self.input_channels, kernel_size=7,
-                               stride=2, pad_mode='pad', padding=3)
+                               stride=2, pad_mode="pad", padding=3)
         self.pad = nn.ConstantPad2d(1, 0)
-        self.max_pool = nn.MaxPool2d(kernel_size=3, stride=2, pad_mode='valid')
+        self.max_pool = nn.MaxPool2d(kernel_size=3, stride=2, pad_mode="valid")
 
         self.layer1 = self._make_layer(block, 64 * wf, layers[0])
         self.layer2 = self._make_layer(block, 128 * wf, layers[1], stride=2)
@@ -190,12 +196,13 @@ class BiT(nn.Cell):
         self.pool = GlobalAvgPooling(keep_dims=True)
         self.classifier = nn.Conv2d(512 * block.expansion * wf, num_classes, kernel_size=1, has_bias=True)
 
-    def _make_layer(self,
-                    block: Type[Union[Bottleneck]],
-                    channels: int,
-                    block_nums: int,
-                    stride: int = 1
-                    ) -> nn.SequentialCell:
+    def _make_layer(
+        self,
+        block: Type[Union[Bottleneck]],
+        channels: int,
+        block_nums: int,
+        stride: int = 1,
+    ) -> nn.SequentialCell:
         """build model depending on cfgs"""
         down_sample = None
 
@@ -213,7 +220,7 @@ class BiT(nn.Cell):
                 down_sample=down_sample,
                 groups=self.groups,
                 base_width=self.base_with,
-                norm=self.norm
+                norm=self.norm,
             )
         )
         self.input_channels = channels * block.expansion
@@ -225,7 +232,7 @@ class BiT(nn.Cell):
                     channels,
                     groups=self.groups,
                     base_width=self.base_with,
-                    norm=self.norm
+                    norm=self.norm,
                 )
             )
 
@@ -263,10 +270,38 @@ class BiT(nn.Cell):
 @register_model
 def BiTresnet50(pretrained: bool = False, num_classes: int = 1000, in_channels=3, **kwargs):
     """Get 50 layers ResNet model.
-     Refer to the base class `models.BiT` for more details.
+    Refer to the base class `models.BiT_Resnet` for more details.
+    """
+    default_cfg = default_cfgs["BiTresnet50"]
+    model = BiT_ResNet(Bottleneck, [3, 4, 6, 3], num_classes=num_classes, in_channels=in_channels, **kwargs)
+
+    if pretrained:
+        load_pretrained(model, default_cfg, num_classes=num_classes, in_channels=in_channels)
+
+    return model
+
+
+@register_model
+def BiTresnet50x3(pretrained: bool = False, num_classes: int = 1000, in_channels=3, **kwargs):
+    """Get 50 layers ResNet model.
+     Refer to the base class `models.BiT_Resnet` for more details.
      """
-    default_cfg = default_cfgs['BiTresnet50']
-    model = BiT(Bottleneck, [3, 4, 6, 3], num_classes=num_classes, in_channels=in_channels, **kwargs)
+    default_cfg = default_cfgs["BiTresnet50x3"]
+    model = BiT_ResNet(Bottleneck, [3, 4, 6, 3], wf=3, num_classes=num_classes, in_channels=in_channels, **kwargs)
+
+    if pretrained:
+        load_pretrained(model, default_cfg, num_classes=num_classes, in_channels=in_channels)
+
+    return model
+
+
+@register_model
+def BiTresnet101(pretrained: bool = False, num_classes: int = 1000, in_channels=3, **kwargs):
+    """Get 101 layers ResNet model.
+    Refer to the base class `models.BiT_Resnet` for more details.
+    """
+    default_cfg = default_cfgs["BiTresnet101"]
+    model = BiT_ResNet(Bottleneck, [3, 4, 23, 3], num_classes=num_classes, in_channels=in_channels, **kwargs)
 
     if pretrained:
         load_pretrained(model, default_cfg, num_classes=num_classes, in_channels=in_channels)

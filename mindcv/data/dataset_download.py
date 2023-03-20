@@ -3,13 +3,20 @@ Dataset download
 """
 
 import os
-from mindcv.utils.download import DownLoad
+from typing import Optional
+
+from mindcv.utils.download import DownLoad, get_default_download_root
 
 __all__ = [
+    "get_dataset_download_root",
     "MnistDownload",
     "Cifar10Download",
-    "Cifar100Download"
+    "Cifar100Download",
 ]
+
+
+def get_dataset_download_root():
+    return os.path.join(get_default_download_root(), "datasets")
 
 
 class MnistDownload(DownLoad):
@@ -19,15 +26,19 @@ class MnistDownload(DownLoad):
         root: The root path where the downloaded dataset is placed.
     """
 
-    url_path = 'http://yann.lecun.com/exdb/mnist/'
+    url_path = "http://yann.lecun.com/exdb/mnist/"
 
-    resources = [("train-images-idx3-ubyte.gz", "f68b3c2dcbeaaa9fbdd348bbdeb94873"),
-                 ("train-labels-idx1-ubyte.gz", "d53e105ee54ea40749a09fcbcd1e9432"),
-                 ("t10k-images-idx3-ubyte.gz", "9fb629c4189551a2d022fa330f9573f3"),
-                 ("t10k-labels-idx1-ubyte.gz", "ec29112dd5afa0611ce80d1b7f02629c")]
+    resources = [
+        ("train-images-idx3-ubyte.gz", "f68b3c2dcbeaaa9fbdd348bbdeb94873"),
+        ("train-labels-idx1-ubyte.gz", "d53e105ee54ea40749a09fcbcd1e9432"),
+        ("t10k-images-idx3-ubyte.gz", "9fb629c4189551a2d022fa330f9573f3"),
+        ("t10k-labels-idx1-ubyte.gz", "ec29112dd5afa0611ce80d1b7f02629c"),
+    ]
 
-    def __init__(self, root: str):
+    def __init__(self, root: Optional[str] = None):
         super().__init__()
+        if root is None:
+            root = os.path.join(get_dataset_download_root(), "mnist")
         self.root = root
         self.path = root
 
@@ -45,11 +56,13 @@ class MnistDownload(DownLoad):
         # download files
         for filename, md5 in self.resources:
             url = os.path.join(self.url_path, filename)
-            self.download_and_extract_archive(url,
-                                              download_path=self.root,
-                                              filename=filename,
-                                              md5=md5,
-                                              remove_finished=True)
+            self.download_and_extract_archive(
+                url,
+                download_path=self.root,
+                filename=filename,
+                md5=md5,
+                remove_finished=True,
+            )
 
 
 class Cifar10Download(DownLoad):
@@ -59,19 +72,23 @@ class Cifar10Download(DownLoad):
         root: The root path where the downloaded dataset is placed.
     """
 
-    url = ('http://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz', 'c32a1d4ab5d03f1284b67883e8d87530')
-    base_dir = 'cifar-10-batches-bin'
+    url = ("http://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz", "c32a1d4ab5d03f1284b67883e8d87530")
+    base_dir = "cifar-10-batches-bin"
 
-    resources = ['data_batch_1.bin',
-                 'data_batch_2.bin',
-                 'data_batch_3.bin',
-                 'data_batch_4.bin',
-                 'data_batch_5.bin',
-                 'test_batch.bin',
-                 'batches.meta.txt']
+    resources = [
+        "data_batch_1.bin",
+        "data_batch_2.bin",
+        "data_batch_3.bin",
+        "data_batch_4.bin",
+        "data_batch_5.bin",
+        "test_batch.bin",
+        "batches.meta.txt",
+    ]
 
-    def __init__(self, root: str):
+    def __init__(self, root: Optional[str] = None):
         super().__init__()
+        if root is None:
+            root = os.path.join(get_dataset_download_root(), "cifar10")
         self.root = root
         self.path = os.path.join(self.root, self.base_dir)
 
@@ -86,10 +103,12 @@ class Cifar10Download(DownLoad):
             return
 
         # download files
-        self.download_and_extract_archive(self.url[0],
-                                          download_path=self.root,
-                                          md5=self.url[1],
-                                          remove_finished=True)
+        self.download_and_extract_archive(
+            self.url[0],
+            download_path=self.root,
+            md5=self.url[1],
+            remove_finished=True,
+        )
 
 
 class Cifar100Download(DownLoad):
@@ -99,16 +118,20 @@ class Cifar100Download(DownLoad):
         root: The root path where the downloaded dataset is placed.
     """
 
-    url = ('http://www.cs.toronto.edu/~kriz/cifar-100-binary.tar.gz', '03b5dce01913d631647c71ecec9e9cb8')
-    base_dir = 'cifar-100-binary'
+    url = ("http://www.cs.toronto.edu/~kriz/cifar-100-binary.tar.gz", "03b5dce01913d631647c71ecec9e9cb8")
+    base_dir = "cifar-100-binary"
 
-    resources = ['train.bin',
-                 'test.bin',
-                 'fine_label_names.txt',
-                 'coarse_label_names.txt']
+    resources = [
+        "train.bin",
+        "test.bin",
+        "fine_label_names.txt",
+        "coarse_label_names.txt",
+    ]
 
-    def __init__(self, root: str):
+    def __init__(self, root: Optional[str] = None):
         super().__init__()
+        if root is None:
+            root = os.path.join(get_dataset_download_root(), "cifar100")
         self.root = root
         self.path = os.path.join(self.root, self.base_dir)
 
@@ -123,7 +146,9 @@ class Cifar100Download(DownLoad):
             return
 
         # download files
-        self.download_and_extract_archive(self.url[0],
-                                          download_path=self.root,
-                                          md5=self.url[1],
-                                          remove_finished=True)
+        self.download_and_extract_archive(
+            self.url[0],
+            download_path=self.root,
+            md5=self.url[1],
+            remove_finished=True,
+        )

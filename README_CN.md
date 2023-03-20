@@ -1,28 +1,17 @@
+<div align="center">
+
 # MindCV
 
-<p align="left">
-    <a href="https://mindcv.readthedocs.io/en/latest">
-        <img alt="docs" src="https://img.shields.io/badge/docs-latest-blue">
-    </a>
-    <a href="https://github.com/mindspore-lab/mindcv/blob/main/LICENSE.md">
-        <img alt="GitHub" src="https://img.shields.io/github/license/mindspore-lab/mindcv.svg">
-    </a>
-    <a href="https://github.com/mindspore-lab/mindcv/pulls">
-        <img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-pink.svg">
-    </a>
-    <a href="https://github.com/mindspore-lab/mindcv/issues">
-        <img alt="open issues" src="https://img.shields.io/github/issues/mindspore-lab/mindcv">
-    </a>
-    <!---
-    <a href="https://github.com/mindspore-lab/mindcv/tags">
-        <img alt="GitHub tags" src="https://img.shields.io/github/tags/mindspore-lab/mindcv">
-    </a>
-    -->
-</p>
-
-| **Build Type**   |`Linux`           |`MacOS`           |`Windows`         |
-| :---:            | :---:            | :---:            | :---:            |
-| **Build Status** | [![Status](https://github.com/mindspore-lab/mindcv/actions/workflows/main.yml/badge.svg)](https://github.com/mindspore-lab/mindcv/actions) | [![Status](https://github.com/mindspore-lab/mindcv/actions/workflows/mac.yml/badge.svg)](https://github.com/mindspore-lab/mindcv/actions) | Not tested|
+[![CI](https://github.com/mindspore-lab/mindcv/actions/workflows/ci.yml/badge.svg)](https://github.com/mindspore-lab/mindcv/actions/workflows/ci.yml)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mindcv)](https://pypi.org/project/mindcv)
+[![PyPI](https://img.shields.io/pypi/v/mindcv)](https://pypi.org/project/mindcv)
+[![docs](https://img.shields.io/badge/docs-latest-blue)](https://mindcv.readthedocs.io/en/latest)
+[![license](https://img.shields.io/github/license/mindspore-lab/mindcv.svg)](https://github.com/mindspore-lab/mindcv/blob/main/LICENSE.md)
+[![open issues](https://img.shields.io/github/issues/mindspore-lab/mindcv)](https://github.com/mindspore-lab/mindcv/issues)
+[![PRs](https://img.shields.io/badge/PRs-welcome-pink.svg)](https://github.com/mindspore-lab/mindcv/pulls)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 
 [English](README.md) | 中文
 
@@ -33,6 +22,8 @@
 [模型列表](#模型列表) |
 [支持算法](#支持算法) |
 [日志](#日志)
+
+</div>
 
 ## 简介
 
@@ -70,7 +61,7 @@ python train.py --model swin_tiny --pretrained --opt=adamw --lr=0.001 --data_dir
 
 基于MindCV进行模型实现和重训练的汇总结果详见[benchmark_results.md](./benchmark_results.md), 所用到的训练策略和训练后的模型权重均可通过表中链接获取。
 
-各模型讲解和训练说明详见[configs](configs)目录。  
+各模型讲解和训练说明详见[configs](configs)目录。
 
 
 ## 安装
@@ -166,9 +157,9 @@ python train.py --model resnet50 --dataset cifar10 --dataset_download
 
 ```shell
 # 分布式训练
-export CUDA_VISIBLE_DEVICES=0,1,2,3  # suppose there are 4 GPUs
+# 假设你有4张GPU或者NPU卡
 mpirun --allow-run-as-root -n 4 python train.py --distribute \
-	--model densenet121 --dataset imagenet --data_dir ./datasets/imagenet   
+	--model densenet121 --dataset imagenet --data_dir ./datasets/imagenet
 ```
 
 完整的参数列表及说明在`config.py`中定义，可运行`python train.py --help`快速查看。
@@ -182,7 +173,7 @@ mpirun --allow-run-as-root -n 4 python train.py --distribute \
 您可以编写yaml文件或设置外部参数来指定配置数据、模型、优化器等组件及其超参。以下是使用预设的训练策略（yaml文件）进行模型训练的示例。
 
 ```shell
-mpirun --allow-run-as-root -n 4 python train.py -c configs/squeezenet/squeezenet_1.0_gpu.yaml    
+mpirun --allow-run-as-root -n 4 python train.py -c configs/squeezenet/squeezenet_1.0_gpu.yaml
 ```
 
 **预定义的训练策略** MindCV目前提前了超过20种模型训练策略，在ImageNet取得SoTA性能。具体的参数配置和详细精度性能汇总请见[`configs`](configs)文件夹。您可以便捷将这些训练策略用于您的模型训练中以提高性能（复用或修改相应的yaml文件即可）
@@ -205,16 +196,17 @@ mpirun --allow-run-as-root -n 4 python train.py -c configs/squeezenet/squeezenet
 
 ```shell
 # 验证模型
-python validate.py --model resnet50 --dataset imagenet --val_split validation --ckpt_path './ckpt/densenet121-best.ckpt' 
-``` 
+python validate.py --model=resnet50 --dataset=imagenet --data_dir=/path/to/data --ckpt_path=/path/to/model.ckpt
+```
 
 - 训练过程中进行验证
 
 当需要在训练过程中，跟踪模型在测试集上精度的变化时，请启用参数`--val_while_train`，如下
 
 ```shell
-python train.py -model resnet50 -dataset cifar10 -val_while_train -val_split test -val_interval 1
-``` 
+python train.py --model=resnet50 --dataset=cifar10 \
+		--val_while_train --val_split=test --val_interval=1
+```
 
 各轮次的训练损失和测试精度将保存在`{ckpt_save_dir}/results.log`中。
 
@@ -227,7 +219,7 @@ python train.py -model resnet50 -dataset cifar10 -val_while_train -val_split tes
 [基于ms_function的混合模式](https://www.mindspore.cn/tutorials/zh-CN/r1.8/advanced/pynative_graph/combine.html) 是兼顾了MindSpore的效率和灵活的混合模式。用户可通过使用`train_with_func.py`文件来使用该混合模式进行训练。
 
 ```shell
-python train_with_func.py --model=resnet50 --dataset=cifar10 --dataset_download --epoch_size=10  
+python train_with_func.py --model=resnet50 --dataset=cifar10 --dataset_download --epoch_size=10
 ```
 
 > 注：此为试验性质的训练脚本，仍在改进，在1.8.1或更早版本的MindSpore上使用此模式目前并不稳定。
@@ -287,7 +279,7 @@ python train_with_func.py --model=resnet50 --dataset=cifar10 --dataset_download 
 * Xception - https://arxiv.org/abs/1610.02357
 
 关于模型性能和预训练权重的信息请查看 [configs](./configs) 文件夹。
-	
+
 我们将持续加入更多SoTA模型及其训练策略，敬请关注。
 
 </details>
@@ -309,6 +301,7 @@ python train_with_func.py --model=resnet50 --dataset=cifar10 --dataset_download 
 * 优化器
     * Adam
     * Adamw
+	* [Lion](https://arxiv.org/abs/2302.06675)
     * Adan (experimental)
     * AdaGrad
     * LAMB
@@ -339,6 +332,21 @@ python train_with_func.py --model=resnet50 --dataset=cifar10 --dataset_download 
 ## 日志
 
 ### 更新
+- 2023/03/05
+1. 增加Lion (EvoLved Sign Momentum)优化器，论文 https://arxiv.org/abs/2302.06675
+	- Lion所使用的学习率一般比Adamw小3到10倍，而权重衰减(weigt_decay)要大3到10倍.
+2. 增加6个模型及其训练策略、预训练权重：
+	- [HRNet](configs/hrnet)
+	- [SENet](configs/senet)
+	- [GoogLeNet](configs/googlenet)
+	- [Inception V3](configs/inception_v3)
+	- [Inception V4](configs/inception_v4)
+	- [Xception](configs/xception)
+3. Support gradient clip
+
+- 2023/01/10
+1. MindCV v0.1发布! 支持通过PyPI安装 (`pip install mindcv`).
+2. 新增4个模型的预训练权重及其策略： googlenet, inception_v3, inception_v4, xception
 
 - 2022/12/09
 
